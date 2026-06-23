@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explorar - Tengo y Necesito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link active">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary">+ Publicar</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Explorar publicaciones</h2>
+          <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Buscar productos o servicios...">
+            <button class="btn btn-primary" id="btn-search">Buscar</button>
+          </div>
+        </div>
+
+        <div class="explorar-filters">
+          <div class="filter-group">
+            <label>Tipo:</label>
+            <select id="filter-type">
+              <option value="all">Todos</option>
+              <option value="tengo">Tengo</option>
+              <option value="necesito">Necesito</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Categoria:</label>
+            <select id="filter-category">
+              <option value="all">Todas</option>
+              <option value="servicio">Servicio</option>
+              <option value="objeto">Objeto</option>
+              <option value="alimento">Alimento</option>
+              <option value="conocimiento">Conocimiento</option>
+              <option value="arte">Arte</option>
+              <option value="transporte">Transporte</option>
+              <option value="hogar">Hogar</option>
+              <option value="tecnologia">Tecnologia</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="products-grid" id="products-grid">
+          <div class="loading">Cargando...</div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display:none">
+          <button class="btn btn-outline" id="load-more">Cargar mas</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let page = 0;
+    const limit = 20;
+
+    function loadProducts() {
+      const type = document.getElementById('filter-type').value;
+      const category = document.getElementById('filter-category').value;
+      const search = document.getElementById('search-input').value;
+
+      let params = `limit=${limit}&skip=${page * limit}`;
+      if (type !== 'all') params += `&type=${type}`;
+      if (category !== 'all') params += `&category=${category}`;
+      if (search) params += `&search=${encodeURIComponent(search)}`;
+
+      API.get('products?' + params).then(data => {
+        const grid = document.getElementById('products-grid');
+        if (page === 0) grid.innerHTML = '';
+        
+        if (!data.products || data.products.length === 0) {
+          if (page === 0) grid.innerHTML = '<div class="empty-state">No hay publicaciones. <a href="nuevo.html">Se el primero!</a></div>';
+          document.getElementById('pagination').style.display = 'none';
+          return;
+        }
+
+        data.products.forEach(p => {
+          grid.appendChild(createProductCard(p));
+        });
+
+        document.getElementById('pagination').style.display = data.products.length >= limit ? 'flex' : 'none';
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadProducts();
+      document.getElementById('filter-type').addEventListener('change', () => { page = 0; loadProducts(); });
+      document.getElementById('filter-category').addEventListener('change', () => { page = 0; loadProducts(); });
+      document.getElementById('btn-search').addEventListener('click', () => { page = 0; loadProducts(); });
+      document.getElementById('search-input').addEventListener('keyup', (e) => { if (e.key === 'Enter') { page = 0; loadProducts(); }});
+      document.getElementById('load-more').addEventListener('click', () => { page++; loadProducts(); });
+    });
+  </script>
+</body>
+</html>

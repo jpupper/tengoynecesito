@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tengo y Necesito - Intercambio sin dinero</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link active">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary">+ Publicar</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="container hero-content">
+        <h1>Intercambia sin dinero</h1>
+        <p class="hero-subtitle">Tengo algo que ofrecer, necesito algo que pedir. Conecta con tu comunidad y haz intercambios justos.</p>
+        <div class="hero-actions">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-primary btn-lg">Publicar algo</a>
+          <a href="/tengoynecesito/explorar.html" class="btn btn-outline btn-lg">Explorar</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-number" id="stat-products">0</span>
+            <span class="stat-label">publicaciones</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="stat-users">0</span>
+            <span class="stat-label">usuarios</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="stat-transactions">0</span>
+            <span class="stat-label">intercambios</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Ultimas publicaciones</h2>
+          <div class="filter-tabs">
+            <button class="filter-btn active" data-type="all">Todas</button>
+            <button class="filter-btn" data-type="tengo">Tengo</button>
+            <button class="filter-btn" data-type="necesito">Necesito</button>
+          </div>
+        </div>
+        <div class="products-grid" id="products-grid">
+          <div class="loading">Cargando...</div>
+        </div>
+        <div class="section-footer">
+          <a href="/tengoynecesito/explorar.html" class="btn btn-outline">Ver todas</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria. Sin dinero, solo trueque.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil - Tengo y Necesito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary">+ Publicar</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link active" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div id="profile-view">
+      <section class="profile-header">
+        <div class="container">
+          <div class="profile-avatar">
+            <div class="avatar-circle" id="profile-avatar-letter">U</div>
+          </div>
+          <h1 id="profile-name">Cargando...</h1>
+          <p class="profile-bio" id="profile-bio"></p>
+          <p class="profile-location" id="profile-location"></p>
+          <div class="profile-stats">
+            <div class="profile-stat">
+              <span class="stat-number" id="profile-products-count">0</span>
+              <span class="stat-label">publicaciones</span>
+            </div>
+            <div class="profile-stat">
+              <span class="stat-number" id="profile-transactions-count">0</span>
+              <span class="stat-label">intercambios</span>
+            </div>
+          </div>
+          <div id="profile-actions" style="display:none">
+            <button class="btn btn-outline" id="btn-edit-profile">Editar perfil</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-header">
+            <h2>Publicaciones</h2>
+            <div class="filter-tabs">
+              <button class="filter-btn active" data-type="all">Todas</button>
+              <button class="filter-btn" data-type="tengo">Tengo</button>
+              <button class="filter-btn" data-type="necesito">Necesito</button>
+            </div>
+          </div>
+          <div class="products-grid" id="profile-products">
+            <div class="loading">Cargando...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div id="profile-edit" style="display:none">
+      <section class="section">
+        <div class="container">
+          <div class="card">
+            <h2>Editar perfil</h2>
+            <form id="edit-profile-form">
+              <div class="form-group">
+                <label>Nombre a mostrar</label>
+                <input type="text" id="edit-name" class="form-input" maxlength="50">
+              </div>
+              <div class="form-group">
+                <label>Bio</label>
+                <textarea id="edit-bio" class="form-input" maxlength="500" rows="3"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Ubicacion</label>
+                <input type="text" id="edit-location" class="form-input" maxlength="100">
+              </div>
+              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-outline" id="btn-cancel-edit">Cancelar</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let profileUserId = null;
+    let isOwnProfile = false;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      profileUserId = params.get('userId') || null;
+
+      initAuth(() => {
+        const currentUserId = getUser()?.userId || getUser()?.id || getUser()._id;
+        
+        if (!profileUserId) {
+          // Own profile
+          if (!currentUserId) {
+            showLogin();
+            return;
+          }
+          profileUserId = currentUserId;
+          isOwnProfile = true;
+          document.getElementById('profile-actions').style.display = 'block';
+        } else {
+          isOwnProfile = profileUserId === currentUserId;
+          if (isOwnProfile) {
+            document.getElementById('profile-actions').style.display = 'block';
+          }
+        }
+
+        loadProfile();
+      });
+    });
+
+    function loadProfile() {
+      // Get profile
+      API.get('users/profile/' + profileUserId).then(data => {
+        const profile = data.profile || { username: 'Usuario', displayName: 'Usuario' };
+        const name = profile.displayName || profile.username || 'Usuario';
+        document.getElementById('profile-name').textContent = name;
+        document.getElementById('profile-bio').textContent = profile.bio || 'Sin bio aun.';
+        document.getElementById('profile-location').textContent = profile.location || '';
+        document.getElementById('profile-avatar-letter').textContent = name.charAt(0).toUpperCase();
+        if (profile.completedTransactions !== undefined) {
+          document.getElementById('profile-transactions-count').textContent = profile.completedTransactions;
+        }
+
+        // Fill edit form
+        document.getElementById('edit-name').value = profile.displayName || '';
+        document.getElementById('edit-bio').value = profile.bio || '';
+        document.getElementById('edit-location').value = profile.location || '';
+      });
+
+      // Get completed transactions count
+      API.get('transactions/count?userId=' + profileUserId).then(data => {
+        document.getElementById('profile-transactions-count').textContent = data.count || 0;
+      });
+
+      loadUserProducts();
+    }
+
+    function loadUserProducts(type) {
+      let url = 'products?userId=' + profileUserId + '&limit=50';
+      if (type && type !== 'all') url += '&type=' + type;
+
+      API.get(url).then(data => {
+        const grid = document.getElementById('profile-products');
+        grid.innerHTML = '';
+        
+        if (!data.products || data.products.length === 0) {
+          grid.innerHTML = '<div class="empty-state">Sin publicaciones aun.</div>';
+          return;
+        }
+
+        data.products.forEach(p => {
+          grid.appendChild(createProductCard(p));
+        });
+      });
+    }
+
+    document.getElementById('btn-edit-profile').addEventListener('click', () => {
+      document.getElementById('profile-view').style.display = 'none';
+      document.getElementById('profile-edit').style.display = 'block';
+    });
+
+    document.getElementById('btn-cancel-edit').addEventListener('click', () => {
+      document.getElementById('profile-view').style.display = 'block';
+      document.getElementById('profile-edit').style.display = 'none';
+    });
+
+    document.getElementById('edit-profile-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = {
+        displayName: document.getElementById('edit-name').value,
+        bio: document.getElementById('edit-bio').value,
+        location: document.getElementById('edit-location').value
+      };
+      API.put('users/me', data).then(() => {
+        document.getElementById('profile-view').style.display = 'block';
+        document.getElementById('profile-edit').style.display = 'none';
+        loadProfile();
+      });
+    });
+
+    document.querySelectorAll('#profile-view .filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#profile-view .filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadUserProducts(btn.dataset.type);
+      });
+    });
+  </script>
+</body>
+</html>

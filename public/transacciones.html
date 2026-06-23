@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis transacciones - Tengo y Necesito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary">+ Publicar</a>
+          <a href="/tengoynecesito/transacciones.html" class="nav-link active">Transacciones</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2>Mis transacciones</h2>
+        </div>
+
+        <div class="tabs">
+          <button class="tab active" data-tab="applicant">Mis aplicaciones</button>
+          <button class="tab" data-tab="owner">Recibidas</button>
+        </div>
+
+        <div class="transactions-list" id="transactions-list">
+          <div class="loading">Cargando transacciones...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let currentTab = 'applicant';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initAuth(() => {
+        if (!isLoggedIn()) {
+          showLogin();
+          return;
+        }
+        loadTransactions();
+      });
+    });
+
+    function loadTransactions() {
+      const list = document.getElementById('transactions-list');
+      list.innerHTML = '<div class="loading">Cargando...</div>';
+
+      API.get('transactions/mine').then(data => {
+        list.innerHTML = '';
+        const items = currentTab === 'applicant' ? (data.asApplicant || []) : (data.asOwner || []);
+
+        if (items.length === 0) {
+          list.innerHTML = '<div class="empty-state">No hay transacciones aun.</div>';
+          return;
+        }
+
+        items.forEach(t => {
+          const card = document.createElement('div');
+          card.className = 'transaction-card';
+          
+          const statusLabels = { pending: 'Pendiente', accepted: 'Aceptada', completed: 'Completada', rejected: 'Rechazada' };
+          const statusClasses = { pending: 'status-pending', accepted: 'status-accepted', completed: 'status-completed', rejected: 'status-rejected' };
+          
+          let offeredHtml = '';
+          if (t.offeredItems && t.offeredItems.length > 0) {
+            offeredHtml = '<div class="offered-items"><small>Ofrece:</small><ul>' + 
+              t.offeredItems.map(i => '<li>' + i.title + '</li>').join('') + '</ul></div>';
+          }
+
+          let actionsHtml = '';
+          if (currentTab === 'owner' && t.status === 'pending') {
+            actionsHtml = `
+              <div class="transaction-actions">
+                <button class="btn btn-primary btn-sm" onclick="updateStatus('${t._id}', 'accepted')">Aceptar</button>
+                <button class="btn btn-outline btn-sm" onclick="updateStatus('${t._id}', 'rejected')">Rechazar</button>
+              </div>
+            `;
+          } else if (currentTab === 'applicant' && t.status === 'accepted') {
+            actionsHtml = `
+              <div class="transaction-actions">
+                <button class="btn btn-primary btn-sm" onclick="updateStatus('${t._id}', 'completed')">Marcar completado</button>
+              </div>
+            `;
+          }
+
+          const otherName = currentTab === 'applicant' ? t.ownerName : t.applicantName;
+          const otherId = currentTab === 'applicant' ? t.ownerId : t.applicantId;
+
+          card.innerHTML = `
+            <div class="transaction-header">
+              <span class="type-badge ${t.productType === 'tengo' ? 'type-tengo' : 'type-necesito'}">${t.productType.toUpperCase()}</span>
+              <span class="transaction-status ${statusClasses[t.status]}">${statusLabels[t.status]}</span>
+            </div>
+            <h3>${t.productTitle}</h3>
+            <p class="transaction-with">Con: <a href="profile.html?userId=${otherId}">${otherName}</a></p>
+            ${offeredHtml}
+            ${t.message ? '<p class="transaction-message">"' + t.message + '"</p>' : ''}
+            <p class="transaction-date">${new Date(t.createdAt).toLocaleDateString('es-AR')}</p>
+            ${actionsHtml}
+          `;
+          list.appendChild(card);
+        });
+      });
+    }
+
+    function updateStatus(transactionId, status) {
+      if (status === 'completed') {
+        if (!confirm('Confirmas que el intercambio se completo exitosamente?')) return;
+      }
+      
+      API.put('transactions/' + transactionId + '/status', { status }).then(data => {
+        if (data.success) {
+          alert('Transaccion ' + (status === 'completed' ? 'completada' : status === 'accepted' ? 'aceptada' : 'rechazada') + '!');
+          loadTransactions();
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo actualizar'));
+        }
+      });
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.tab;
+        loadTransactions();
+      });
+    });
+  </script>
+</body>
+</html>

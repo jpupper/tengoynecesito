@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producto - Tengo y Necesito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary">+ Publicar</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="product-detail" id="product-detail">
+          <div class="loading">Cargando...</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Apply Modal -->
+  <div class="modal-overlay" id="apply-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Aplicar a este intercambio</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Selecciona que items de TU lista de "TENGO" queres ofrecer a cambio:</p>
+        <div id="my-items-list" class="items-list">
+          <div class="loading">Cargando tus items...</div>
+        </div>
+        <div class="form-group">
+          <label>Mensaje (opcional)</label>
+          <textarea id="apply-message" class="form-input" rows="3" placeholder="Decile algo al publicador..."></textarea>
+        </div>
+        <button class="btn btn-primary btn-full" id="btn-confirm-apply">Enviar aplicacion</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let currentProduct = null;
+    let selectedItems = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const productId = params.get('id');
+
+      if (!productId) {
+        document.getElementById('product-detail').innerHTML = '<div class="empty-state">Producto no encontrado</div>';
+        return;
+      }
+
+      API.get('products/' + productId).then(data => {
+        if (!data.success || !data.product) {
+          document.getElementById('product-detail').innerHTML = '<div class="empty-state">Producto no encontrado</div>';
+          return;
+        }
+        currentProduct = data.product;
+        renderProduct(data.product);
+      });
+    });
+
+    function renderProduct(product) {
+      const div = document.getElementById('product-detail');
+      const isOwner = getUser() && (getUser().userId === product.userId || getUser().id === product.userId);
+      const typeLabel = product.type === 'tengo' ? 'TENGO' : 'NECESITO';
+      const typeClass = product.type === 'tengo' ? 'type-tengo' : 'type-necesito';
+
+      div.innerHTML = `
+        <div class="product-header">
+          <span class="type-badge ${typeClass}">${typeLabel}</span>
+          <span class="product-category">${product.category}</span>
+        </div>
+        <h1 class="product-title-detail">${product.title}</h1>
+        <p class="product-desc-detail">${product.description}</p>
+        <div class="product-meta">
+          <a href="profile.html?userId=${product.userId}" class="product-author">
+            <div class="avatar-small">${product.username.charAt(0).toUpperCase()}</div>
+            <span>${product.username}</span>
+          </a>
+          <span class="product-date">${new Date(product.createdAt).toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span class="product-status status-${product.status}">${product.status === 'active' ? 'Disponible' : product.status === 'in_transaction' ? 'En transaccion' : 'Completado'}</span>
+        </div>
+        ${!isOwner && product.status === 'active' ? '<button class="btn btn-primary btn-lg btn-full" id="btn-apply">Aplicar a este intercambio</button>' : ''}
+        ${isOwner ? '<p class="own-product-note">Este es tu producto</p>' : ''}
+      `;
+
+      if (!isOwner && product.status === 'active') {
+        document.getElementById('btn-apply').addEventListener('click', () => {
+          if (!isLoggedIn()) {
+            showLogin();
+            return;
+          }
+          openApplyModal();
+        });
+      }
+    }
+
+    function openApplyModal() {
+      document.getElementById('apply-modal').style.display = 'flex';
+      
+      // Load user's "tengo" items
+      API.get('products?type=tengo&userId=' + getUser().userId + '&status=active').then(data => {
+        const list = document.getElementById('my-items-list');
+        list.innerHTML = '';
+        
+        if (!data.products || data.products.length === 0) {
+          list.innerHTML = '<div class="empty-state">No tenes items para ofrecer. <a href="nuevo.html">Publica algo primero!</a></div>';
+          document.getElementById('btn-confirm-apply').disabled = true;
+          return;
+        }
+
+        data.products.forEach(item => {
+          const el = document.createElement('label');
+          el.className = 'item-checkbox';
+          el.innerHTML = `
+            <input type="checkbox" value="${item._id}" data-title="${item.title}">
+            <div class="item-info">
+              <strong>${item.title}</strong>
+              <p>${item.description.substring(0, 80)}${item.description.length > 80 ? '...' : ''}</p>
+            </div>
+          `;
+          el.querySelector('input').addEventListener('change', updateSelectedItems);
+          list.appendChild(el);
+        });
+        
+        document.getElementById('btn-confirm-apply').disabled = false;
+      });
+
+      document.getElementById('modal-close').onclick = () => {
+        document.getElementById('apply-modal').style.display = 'none';
+      };
+    }
+
+    function updateSelectedItems() {
+      selectedItems = [];
+      document.querySelectorAll('#my-items-list input[type="checkbox"]:checked').forEach(cb => {
+        selectedItems.push({ productId: cb.value, title: cb.dataset.title });
+      });
+    }
+
+    document.getElementById('btn-confirm-apply').addEventListener('click', () => {
+      if (selectedItems.length === 0) {
+        alert('Selecciona al menos un item para ofrecer');
+        return;
+      }
+
+      const message = document.getElementById('apply-message').value;
+
+      API.post('transactions', {
+        productId: currentProduct._id,
+        offeredItems: selectedItems,
+        message
+      }).then(data => {
+        if (data.success) {
+          alert('Aplicacion enviada! El dueño del producto la revisara.');
+          document.getElementById('apply-modal').style.display = 'none';
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo aplicar'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>

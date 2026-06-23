@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva publicacion - Tengo y Necesito</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="/tengoynecesito/" class="nav-logo">TENGO Y NECESITO</a>
+      <div class="nav-links">
+        <a href="/tengoynecesito/" class="nav-link">Inicio</a>
+        <a href="/tengoynecesito/explorar.html" class="nav-link">Explorar</a>
+        <div id="auth-nav">
+          <a href="#" class="btn btn-primary" id="btn-login">Ingresar</a>
+        </div>
+        <div id="user-nav" style="display:none">
+          <a href="/tengoynecesito/nuevo.html" class="btn btn-secondary active">+ Publicar</a>
+          <a href="/tengoynecesito/profile.html" class="nav-link" id="nav-profile">Mi Perfil</a>
+          <button class="btn btn-outline" id="btn-logout">Salir</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="card form-card">
+          <h2>Nueva publicacion</h2>
+          <p class="form-subtitle">Que queres publicar hoy?</p>
+          <form id="new-product-form">
+            <div class="form-group">
+              <label>Tipo de publicacion</label>
+              <div class="type-selector">
+                <label class="type-option" id="opt-tengo">
+                  <input type="radio" name="type" value="tengo" checked>
+                  <span class="type-badge type-tengo">TENGO</span>
+                  <span class="type-desc">Ofrezco algo</span>
+                </label>
+                <label class="type-option" id="opt-necesito">
+                  <input type="radio" name="type" value="necesito">
+                  <span class="type-badge type-necesito">NECESITO</span>
+                  <span class="type-desc">Busco algo</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Titulo</label>
+              <input type="text" id="product-title" class="form-input" required maxlength="100" placeholder="Ej: Clases de guitarra">
+            </div>
+            <div class="form-group">
+              <label>Descripcion</label>
+              <textarea id="product-desc" class="form-input" required maxlength="2000" rows="4" placeholder="Conta de que se trata..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="product-category" class="form-input">
+                <option value="servicio">Servicio</option>
+                <option value="objeto">Objeto</option>
+                <option value="alimento">Alimento</option>
+                <option value="conocimiento">Conocimiento</option>
+                <option value="arte">Arte</option>
+                <option value="transporte">Transporte</option>
+                <option value="hogar">Hogar</option>
+                <option value="tecnologia">Tecnologia</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg btn-full">Publicar</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Tengo y Necesito &mdash; Red de intercambio comunitaria.</p>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      initAuth(() => {
+        if (!isLoggedIn()) {
+          showLogin();
+          return;
+        }
+      });
+    });
+
+    document.getElementById('new-product-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const type = document.querySelector('input[name="type"]:checked').value;
+      const title = document.getElementById('product-title').value.trim();
+      const description = document.getElementById('product-desc').value.trim();
+      const category = document.getElementById('product-category').value;
+
+      if (!title || !description) {
+        alert('Completa todos los campos');
+        return;
+      }
+
+      API.post('products', { type, title, description, category }).then(data => {
+        if (data.success) {
+          window.location.href = 'producto.html?id=' + data.product._id;
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo publicar'));
+        }
+      });
+    });
+  </script>
+</body>
+</html>
