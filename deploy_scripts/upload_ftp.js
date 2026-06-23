@@ -39,7 +39,8 @@ async function uploadToFtp() {
             host: ftpHost,
             user: ftpUser,
             password: ftpPassword,
-            secure: false
+            secure: true,
+            secureOptions: { rejectUnauthorized: false }
         });
         const remoteDir = '/tengoynecesito';
         const localPublicFolder = path.join(__dirname, '../public');
